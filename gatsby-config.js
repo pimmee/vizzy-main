@@ -4,6 +4,9 @@ module.exports = {
     description: `Kick off your next, great Gatsby project with this Material UI starter. This barebones starter ships with the main Gatsby and Material UI configuration files you might need.`,
     author: `@dominicabela`,
   },
+  flags: {
+    DEV_SSR: false,
+  },
   plugins: [
     `gatsby-plugin-react-helmet`,
     {
@@ -39,6 +42,21 @@ module.exports = {
       },
       // 'gatsby-plugin-styled-components',
     },
+    {
+      resolve: 'gatsby-plugin-root-import',
+      options: {
+        src: `${__dirname}/src`,
+        pages: `${__dirname}/src/pages`,
+        assets: `${__dirname}/src/assets`,
+        components: `${__dirname}/src/components`,
+        constants: `${__dirname}/src/constants`,
+        types: `${__dirname}/src/types`,
+        utils: `${__dirname}/src/utils`,
+        modules: `${__dirname}/src/modules`,
+        fbase: `${__dirname}/src/fbase`,
+      }
+    },
+    `gatsby-plugin-typescript`,
     // this (optional) plugin enables Progressive Web App + Offline functionality
     // To learn more, visit: https://gatsby.dev/offline
     `gatsby-plugin-offline`,
