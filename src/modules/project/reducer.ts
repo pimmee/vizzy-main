@@ -1,23 +1,23 @@
-import app from 'firebase/app'
-import produce from 'immer'
-import { ActionType, getType } from 'typesafe-actions'
+import app from 'firebase/app';
+import produce from 'immer';
+import { ActionType, getType } from 'typesafe-actions';
 
-import * as Actions from './actions'
-import { ProjectOrderBy } from 'types/firebase'
-import { CommunityProject, Commit } from 'types/project'
+import * as Actions from './actions';
+import { ProjectOrderBy } from 'types/firebase';
+import { CommunityProject, Commit } from 'types/project';
 
 export interface ProjectState {
-  community: CommunityProject[]
-  searchedProjects: CommunityProject[]
-  isSearching: boolean
-  isFetching: boolean
-  hasMore: boolean
-  hasSearched: boolean
-  showSearchedProjects: boolean
-  orderBy: ProjectOrderBy
-  lastVisible?: app.firestore.QueryDocumentSnapshot<app.firestore.DocumentData>
-  commits: Commit[]
-  searchTerm: string
+  community: CommunityProject[];
+  searchedProjects: CommunityProject[];
+  isSearching: boolean;
+  isFetching: boolean;
+  hasMore: boolean;
+  hasSearched: boolean;
+  showSearchedProjects: boolean;
+  orderBy: ProjectOrderBy;
+  lastVisible?: app.firestore.QueryDocumentSnapshot<app.firestore.DocumentData>;
+  commits: Commit[];
+  searchTerm: string;
 }
 
 export const initState: ProjectState = {
@@ -31,90 +31,90 @@ export const initState: ProjectState = {
   commits: [],
   searchTerm: '',
   showSearchedProjects: false,
-}
+};
 
-type Action = ActionType<typeof Actions>
+type Action = ActionType<typeof Actions>;
 
 const reducer = produce((draft: ProjectState, action: Action) => {
   switch (action.type) {
     case getType(Actions.fetchMoreCommunityProjects): {
-      draft.isFetching = true
-      return
+      draft.isFetching = true;
+      return;
     }
 
     case getType(Actions.setCommunityOrderBy): {
-      const { orderBy } = action.payload
-      draft.orderBy = orderBy
-      draft.hasMore = orderBy !== ProjectOrderBy.STAFF_PICK
-      draft.community = []
-      draft.lastVisible = undefined
-      return
+      const { orderBy } = action.payload;
+      draft.orderBy = orderBy;
+      draft.hasMore = orderBy !== ProjectOrderBy.STAFF_PICK;
+      draft.community = [];
+      draft.lastVisible = undefined;
+      return;
     }
 
     case getType(Actions.setProjectSearchTerm): {
-      const { text } = action.payload
-      draft.searchTerm = text
-      draft.hasSearched = false
+      const { text } = action.payload;
+      draft.searchTerm = text;
+      draft.hasSearched = false;
       if (!text) {
-        draft.showSearchedProjects = false
+        draft.showSearchedProjects = false;
       }
 
-      return
+      return;
     }
 
     case getType(Actions.addCommunityProjects): {
-      const { projects, lastVisible, hasMore } = action.payload
-      draft.isFetching = false
-      draft.hasMore = hasMore
-      draft.community.push(...projects)
-      draft.lastVisible = lastVisible
-      return
+      const { projects, lastVisible, hasMore } = action.payload;
+      draft.isFetching = false;
+      draft.hasMore = hasMore;
+      draft.community.push(...projects);
+      draft.lastVisible = lastVisible;
+      return;
     }
 
     case getType(Actions.setIsFetchingProjects): {
-      const { isFetching } = action.payload
-      draft.isFetching = isFetching
-      return
+      const { isFetching } = action.payload;
+      draft.isFetching = isFetching;
+      return;
     }
 
     case getType(Actions.setHasFetchedAllProjects): {
-      draft.hasMore = !action.payload
-      return
+      draft.hasMore = !action.payload;
+      return;
     }
 
     case getType(Actions.setCommunityProjects): {
-      const { projects } = action.payload
-      draft.community = projects
-      return
+      const { projects } = action.payload;
+      draft.community = projects;
+      return;
     }
 
     case getType(Actions.performProjectSearch): {
-      draft.isSearching = true
-      return
+      draft.isSearching = true;
+      return;
     }
 
     case getType(Actions.setSearchedProjects): {
-      const { projects } = action.payload
-      draft.searchedProjects = projects
-      draft.isSearching = false
-      draft.hasSearched = true
-      draft.showSearchedProjects = true
+      const { projects } = action.payload;
+      draft.searchedProjects = projects;
+      draft.isSearching = false;
+      draft.hasSearched = true;
+      draft.showSearchedProjects = true;
 
-      return
+      return;
     }
 
     case getType(Actions._incrementProjectLike): {
-      const { projectId } = action.payload
-      const project = draft.community.find(p => p.id === projectId)
+      const { projectId } = action.payload;
+      const project = draft.community.find((p) => p.id === projectId);
       if (project) {
-        project.likes += 1
+        project.likes += 1;
       }
-      return
+      return;
     }
 
     default:
-      break
+      break;
   }
-}, initState)
+}, initState);
 
-export default reducer
+export default reducer;

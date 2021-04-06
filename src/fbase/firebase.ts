@@ -1,5 +1,10 @@
 import { getWeek, getYear, isBefore } from 'date-fns';
 import { nanoid } from 'nanoid';
+import app from 'firebase/app';
+import 'firebase/firestore';
+import 'firebase/auth';
+import 'firebase/storage';
+import 'firebase/analytics';
 
 import { extractProjectMeta } from './utils';
 import { DEFAULT_USER_VALUES } from 'constants/common';
@@ -13,7 +18,9 @@ import { CommunityProject, UserProject } from 'types/project';
 import { User, UserNotifcationType } from 'types/user';
 
 const isNode =
-  typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
+  typeof process !== 'undefined' &&
+  process.versions != null &&
+  process.versions.node != null;
 
 const config = {
   apiKey: process.env.GATSBY_FIREBASE_API_KEY,
@@ -26,69 +33,73 @@ const config = {
   measurementId: process.env.GATSBY_FIREBASE_MEASUREMENT_ID,
 };
 
-let firebaseInstance: any;
-export const getFirebase = (firebase:any) => {
-  if (firebaseInstance) {
-    return firebaseInstance
+let firebaseInstance: any = null;
+
+function getFirebase() {
+  if (typeof window !== 'undefined') {
+    if (firebaseInstance) return firebaseInstance;
+    firebaseInstance = app.initializeApp(config);
+    return firebaseInstance;
   }
 
-  firebase.initializeApp(config)
-  firebaseInstance = firebase
-
-  return firebase
+  return null;
 }
 
 export default class Firebase {
   private static _instance?: Firebase;
-  storage: any//app.storage.Storage;
-  auth: any//app.auth.Auth;
-  db: any//app.firestore.Firestore;
-  analytics?: any//app.analytics.Analytics;
-  database: any//app.database.Database;
-  facebookProvider: any//app.auth.FacebookAuthProvider;
-  googleProvider: any//app.auth.GoogleAuthProvider;
-  fieldValue: any//app.firestore.FieldValue;
+  storage: app.storage.Storage;
+  auth: app.auth.Auth;
+  db: app.firestore.Firestore;
+  analytics?: app.analytics.Analytics;
+  database: app.database.Database;
+  facebookProvider: app.auth.FacebookAuthProvider;
+  googleProvider: app.auth.GoogleAuthProvider;
+  fieldValue: any; // typeof app.firestore.FieldValue;
   private hasCheckedAuth = false;
 
-  private lastFetchedProject: any;//app.firestore.Query<app.firestore.DocumentData>;
+  private lastFetchedProject: any; //app.firestore.Query<app.firestore.DocumentData>;
 
   constructor() {
     this.auth = null as any;
-    this.db =null as any;
-    this.database =null as any;
-    this.storage =null as any;
-
+    this.db = null as any;
+    this.database = null as any;
+    this.storage = null as any;
+    console.log(process.env.GATSBY_FIREBASE_API_KEY);
     /* Social Sign In Method Provider */
     this.facebookProvider = null as any;
     this.googleProvider = null as any;
-    this.lastFetchedProject =null as any;
-    const lazyApp = import('firebase/app');
-    const lazyDatabase = import('firebase/database');
-    const lazyFirestore = import('firebase/firestore');
-    const lazyAuth = import('firebase/auth');
-    const lazyStorage = import('firebase/storage');
+    this.lastFetchedProject = null as any;
+    // const lazyApp = import('firebase/app');
+    // const lazyDatabase = import('firebase/database');
+    // const lazyFirestore = import('firebase/firestore');
+    // const lazyAuth = import('firebase/auth');
+    // const lazyStorage = import('firebase/storage');
 
-    Promise.all([lazyApp, lazyDatabase, lazyFirestore, lazyAuth, lazyStorage]).then(
-      ([firebase]) => {
-        this.db = getFirebase(firebase).firestore();
-        this.auth = getFirebase(firebase).auth();
-        this.storage = getFirebase(firebase).storage();
-        if (!isNode && process.env.NODE_ENV === 'production') {
-          this.analytics = getFirebase(firebase).analytics()
-        }
-        this.facebookProvider = new firebase.default.auth.FacebookAuthProvider();
-        this.googleProvider = new firebase.default.auth.GoogleAuthProvider();
-        this.fieldValue = app.firestore.FieldValue;
-        this.lastFetchedProject = this.db
-        .collection(Collection.PROJECTS)
-        .where('isCommunityProject', '==', true)
-        .limit(3);
-      }
-    );
+    // Promise.all([
+    //   lazyApp,
+    //   lazyDatabase,
+    //   lazyFirestore,
+    //   lazyAuth,
+    //   lazyStorage,
+    // ]).then(([firebase]) => {
+    console.log('heere');
+    this.db = getFirebase().firestore();
+    this.auth = getFirebase().auth();
+    this.storage = getFirebase().storage();
+    if (!isNode && process.env.NODE_ENV === 'production') {
+      this.analytics = getFirebase().analytics();
+    }
+    this.facebookProvider = new app.auth.FacebookAuthProvider();
+    this.googleProvider = new app.auth.GoogleAuthProvider();
+    this.fieldValue = app.firestore.FieldValue;
 
-  };
-
-
+    this.lastFetchedProject = this.db
+      .collection(Collection.PROJECTS)
+      .where('isCommunityProject', '==', true)
+      .limit(3);
+    // });
+    console.log('db', this.db);
+  }
 
   public static get Instance(): Firebase {
     if (!this._instance) {
@@ -108,29 +119,39 @@ export default class Firebase {
 
   userVideos = (uid: string) => this.user(uid).collection(Collection.VIDEOS);
 
-  userProjects = (uid: string) => this.user(uid).collection(Collection.PROJECTS);
+  userProjects = (uid: string) =>
+    this.user(uid).collection(Collection.PROJECTS);
 
   userExports = (uid: string) => this.user(uid).collection(Collection.EXPORTS);
 
   customer = (uid: string) => this.db.collection(Collection.CUSTOMERS).doc(uid);
 
-  project = (projectId: string) => this.db.collection(Collection.PROJECTS).doc(projectId);
+  project = (projectId: string) =>
+    this.db.collection(Collection.PROJECTS).doc(projectId);
 
-  comment = (commentId: string) => this.db.collection(Collection.COMMENTS).doc(commentId);
+  comment = (commentId: string) =>
+    this.db.collection(Collection.COMMENTS).doc(commentId);
 
   userNexus = (uid: string) => this.user(uid).collection(Collection.NEXUS);
 
   projectSubmissions = () => this.db.collection(Collection.WEEKLY_SUBMISSIONS);
 
-  userSpectrumPresets = (uid: string) => this.user(uid).collection(Collection.SPECTRUM_PRESETS);
+  userSpectrumPresets = (uid: string) =>
+    this.user(uid).collection(Collection.SPECTRUM_PRESETS);
 
   spectrumPresets = () => this.db.collection(Collection.SPECTRUM_PRESETS);
 
   setProjectDescription = (projectId: string, description: string) => {
-    return this.db.collection(Collection.PROJECTS).doc(projectId).update({ description });
+    return this.db
+      .collection(Collection.PROJECTS)
+      .doc(projectId)
+      .update({ description });
   };
   nexusTemplates = () =>
-    this.db.collection(Collection.TEMPLATES).doc(Collection.NEXUS).collection(Collection.ELEMENTS);
+    this.db
+      .collection(Collection.TEMPLATES)
+      .doc(Collection.NEXUS)
+      .collection(Collection.ELEMENTS);
 
   getCurrentUserData = async () => {
     const user = this.auth.currentUser;
@@ -144,7 +165,6 @@ export default class Firebase {
     return null;
   };
 
-
   updateProfile = async (values: Record<string, any | string>) => {
     const user = this.auth.currentUser;
     if (user) {
@@ -156,14 +176,20 @@ export default class Firebase {
   };
 
   getProject = async (projectId: string) => {
-    const doc = await this.db.collection(Collection.PROJECTS).doc(projectId).get();
+    const doc = await this.db
+      .collection(Collection.PROJECTS)
+      .doc(projectId)
+      .get();
     if (doc.exists) {
       const project = doc.data();
       if (!project) return null;
       return {
         ...project,
         commits: project.commits
-          ? project.commits.map((p: any) => ({ ...p, forkedAt: p.forkedAt.toDate() }))
+          ? project.commits.map((p: any) => ({
+              ...p,
+              forkedAt: p.forkedAt.toDate(),
+            }))
           : [],
       };
     }
@@ -176,7 +202,7 @@ export default class Firebase {
     const user = this.auth.currentUser;
     if (user) {
       const snapshot = await this.userProjects(user.uid).get();
-      projects = snapshot.docs.map(doc => {
+      projects = snapshot.docs.map((doc: any) => {
         const data = doc.data();
         return {
           ...data,
@@ -192,15 +218,20 @@ export default class Firebase {
       .collection(Collection.PROJECTS)
       // .orderBy('isCommunityProject', 'desc')
       .where('isCommunityProject', '==', true)
-      .where('searchTerms', 'array-contains-any', searchTerm.toLowerCase().split(' '))
+      .where(
+        'searchTerms',
+        'array-contains-any',
+        searchTerm.toLowerCase().split(' ')
+      )
       .get();
-    const projects = snapshot.docs.map(async doc => {
+    const projects = snapshot.docs.map(async (doc: any) => {
       const data = doc.data();
       const userDoc = await this.user(data.userId).get(); // Fetch username
       const userData = userDoc.data() as User;
       return {
         ...extractProjectMeta(data),
-        username: userData && userData.username ? userData.username : 'Anonymous',
+        username:
+          userData && userData.username ? userData.username : 'Anonymous',
         userAvatar: userData ? userData.avatar : '',
       } as CommunityProject;
     });
@@ -208,12 +239,12 @@ export default class Firebase {
   };
 
   getCommunityProjects = (
-    lastVisible?: app.firestore.QueryDocumentSnapshot<app.firestore.DocumentData>,
+    lastVisible?: any, //app.firestore.QueryDocumentSnapshot<app.firestore.DocumentData>,
     orderBy: ProjectOrderBy = ProjectOrderBy.POPULAR,
     limit = 9
   ): Promise<{
     projects: CommunityProject[];
-    lastVisible: app.firestore.QueryDocumentSnapshot<app.firestore.DocumentData>;
+    lastVisible: any; //app.firestore.QueryDocumentSnapshot<app.firestore.DocumentData>;
     hasMore: boolean;
   }> => {
     if (!lastVisible) {
@@ -224,7 +255,10 @@ export default class Firebase {
       throw new Error('limit must be a positive integer');
     }
 
-    orderBy = orderBy === ProjectOrderBy.STAFF_PICK ? ProjectOrderBy.POPULAR : orderBy;
+    console.log('ey', this.db);
+
+    orderBy =
+      orderBy === ProjectOrderBy.STAFF_PICK ? ProjectOrderBy.POPULAR : orderBy;
     const query = lastVisible
       ? this.db
           .collection(Collection.PROJECTS)
@@ -241,23 +275,28 @@ export default class Firebase {
     return new Promise((resolve, reject) => {
       query
         .get()
-        .then(async snapshot => {
+        .then(async (snapshot: any) => {
           const lastVisible = snapshot.docs[snapshot.docs.length - 1];
 
-          const projects = snapshot.docs.map(async doc => {
+          const projects = snapshot.docs.map(async (doc: any) => {
             const data = doc.data();
             const userDoc = await this.user(data.userId).get(); // Fetch username
             const userData = userDoc.data() as User;
             return {
               ...extractProjectMeta(data),
-              username: userData && userData.username ? userData.username : 'Anonymous',
+              username:
+                userData && userData.username ? userData.username : 'Anonymous',
               userAvatar: userData ? userData.avatar : '',
             } as CommunityProject;
           });
           const hasMore = projects.length === limit;
-          resolve({ projects: await Promise.all(projects), lastVisible, hasMore });
+          resolve({
+            projects: await Promise.all(projects),
+            lastVisible,
+            hasMore,
+          });
         })
-        .catch(error => {
+        .catch((error: any) => {
           console.error(error);
           reject(error);
         });
@@ -266,7 +305,7 @@ export default class Firebase {
 
   getAllProjects = async () => {
     const snapshot = await this.db.collection(Collection.PROJECTS).get();
-    const projects = snapshot.docs.map(doc => {
+    const projects = snapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         ...data,
@@ -277,7 +316,6 @@ export default class Firebase {
     return projects;
   };
 
-
   submitTemplate = async (projectId: string, description = '') => {
     const user = this.auth.currentUser;
 
@@ -285,7 +323,9 @@ export default class Firebase {
       const project = this.project(projectId).get();
       if ((await project).exists) {
         const year = this.projectSubmissions().doc(`${getYear(new Date())}`);
-        const week = year.collection(`${1 + getWeek(new Date(), { weekStartsOn: 1 })}`);
+        const week = year.collection(
+          `${1 + getWeek(new Date(), { weekStartsOn: 1 })}`
+        );
         const userDoc = await this.user(user.uid).get();
         const userData = userDoc.data();
         week.add({
@@ -311,7 +351,10 @@ export default class Firebase {
     if (user) {
       const userDoc = await this.user(user.uid).get();
       const data = userDoc.data();
-      if (data && (!data.likedProjects || !data.likedProjects.includes(projectId))) {
+      if (
+        data &&
+        (!data.likedProjects || !data.likedProjects.includes(projectId))
+      ) {
         this.user(user.uid).update({
           likedProjects: this.fieldValue.arrayUnion(projectId),
         });
@@ -342,7 +385,6 @@ export default class Firebase {
       }
     }
   };
-
 
   getProjectComments = async (projectId: string) => {
     const user = this.auth.currentUser;
@@ -384,7 +426,7 @@ export default class Firebase {
         .where('userId', '==', user.uid)
         .where('status', '==', 'pending')
         .get();
-      snapshot.docs.forEach(doc => {
+      snapshot.docs.forEach((doc: any) => {
         doc.ref.update({
           status: 'done',
           updatedAt: new Date(),
@@ -393,7 +435,11 @@ export default class Firebase {
     }
   };
 
-  addProjectComment = async (projectId: string, text: string, parentId?: string) => {
+  addProjectComment = async (
+    projectId: string,
+    text: string,
+    parentId?: string
+  ) => {
     const user = this.auth.currentUser;
     if (!user) {
       showSnackbar('You need to be signed in to comment', 'info');
@@ -444,7 +490,7 @@ export default class Firebase {
     if (user) {
       this.user(user.uid)
         .get()
-        .then(userDoc => {
+        .then((userDoc: any) => {
           const userData = userDoc.data();
           if (userData?.dislikedComments?.includes(commentId)) {
             userDoc.ref.update({
@@ -472,7 +518,7 @@ export default class Firebase {
     if (user) {
       this.user(user.uid)
         .get()
-        .then(userDoc => {
+        .then((userDoc: any) => {
           const userData = userDoc.data();
           if (userData?.likedComments?.includes(commentId)) {
             userDoc.ref.update({
@@ -513,7 +559,7 @@ export default class Firebase {
       this.comment(commentId)
         .delete()
         .then(() => showSnackbar('Comment deleted', 'success'))
-        .catch(err => {
+        .catch((err: string) => {
           showSnackbar('Could not delete comment ' + err, 'error');
         });
     }
@@ -530,15 +576,19 @@ export default class Firebase {
     );
     return {
       isBanned,
-      message: bannedUntil ? `You are banned until ${bannedUntil.toDate().toDateString()}` : '',
+      message: bannedUntil
+        ? `You are banned until ${bannedUntil.toDate().toDateString()}`
+        : '',
     };
   }
-
 
   isMyProject = async (projectId: string): Promise<boolean> => {
     const user = this.auth.currentUser;
     if (user) {
-      const doc = await this.user(user.uid).collection(Collection.PROJECTS).doc(projectId).get();
+      const doc = await this.user(user.uid)
+        .collection(Collection.PROJECTS)
+        .doc(projectId)
+        .get();
       return doc.exists;
     }
     return false;
@@ -571,7 +621,7 @@ export default class Firebase {
       // Get the download URL
       starsRef
         .getDownloadURL()
-        .then(function (url) {
+        .then(function (url: string) {
           resolve(url);
           // Insert url into an <img> tag to "download"
         })
@@ -604,7 +654,7 @@ export default class Firebase {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       [key: string]: any;
     },
-    options?: app.analytics.AnalyticsCallOptions
+    options?: any //app.analytics.AnalyticsCallOptions
   ) => {
     if (this.analytics) {
       this.analytics.logEvent(eventName, eventParams, options);
@@ -653,9 +703,14 @@ export default class Firebase {
 
     if (tempDeleteStorageFailed) {
       // TODO: TEMPORARY ALPHA EXPORT NAME WITH .mp4 ENDING FIX
-      console.log('Storage delete failed. Trying with mp4 ending: ', tempFixedExportId);
+      console.log(
+        'Storage delete failed. Trying with mp4 ending: ',
+        tempFixedExportId
+      );
       if (collection === Collection.EXPORTS) {
-        const ref = this.storage.ref(`${collection}/${user.uid}/${tempFixedExportId}`);
+        const ref = this.storage.ref(
+          `${collection}/${user.uid}/${tempFixedExportId}`
+        );
         ref.delete().then(() => {
           console.log('File deleted successfully from storage.');
         });
@@ -663,14 +718,19 @@ export default class Firebase {
     }
     if (tempDeleteFirestoreFailed) {
       // TODO: TEMPORARY ALPHA EXPORT NAME WITH .mp4 ENDING FIX
-      console.log('Firestore delete failed. Trying with mp4 ending: ', tempFixedExportId);
+      console.log(
+        'Firestore delete failed. Trying with mp4 ending: ',
+        tempFixedExportId
+      );
       if (collection === Collection.EXPORTS) {
         this.user(user.uid)
           .collection(collection)
           .doc(tempFixedExportId)
           .delete()
           .then(() => {
-            console.log('File deleted successfully from firestore with mp4 ending.');
+            console.log(
+              'File deleted successfully from firestore with mp4 ending.'
+            );
             showSnackbar('File was deleted successfully', 'success');
           });
       }
@@ -702,12 +762,12 @@ export default class Firebase {
     if (user) {
       this.user(user.uid)
         .get()
-        .then(doc => {
+        .then((doc: any) => {
           const data = doc.data();
           if (data?.isAdmin) {
             this.project(projectId)
               .get()
-              .then(projectDoc => {
+              .then((projectDoc: any) => {
                 const project = projectDoc.data();
                 if (project && project.userId) {
                   projectDoc.ref
@@ -715,7 +775,9 @@ export default class Firebase {
                     .then(() => {
                       showSnackbar('Project unublished', 'success');
                       this.db.collection(Collection.NOTIFICATIONS).add({
-                        text: `Your project ${project.name} has been unpublished by an admin ${
+                        text: `Your project ${
+                          project.name
+                        } has been unpublished by an admin ${
                           reason ? reason : ''
                         }`,
                         status: 'pending',
@@ -725,7 +787,7 @@ export default class Firebase {
                         createdAt: new Date(),
                       });
                     })
-                    .catch(err => {
+                    .catch((err: any) => {
                       showSnackbar(err.toString(), 'error');
                     });
                 }
@@ -739,12 +801,12 @@ export default class Firebase {
     if (user) {
       this.user(user.uid)
         .get()
-        .then(doc => {
+        .then((doc: any) => {
           const data = doc.data();
           if (data?.isAdmin) {
             this.project(projectId)
               .get()
-              .then(projectDoc => {
+              .then((projectDoc: any) => {
                 const project = projectDoc.data();
                 if (project && project.userId) {
                   projectDoc.ref
@@ -752,9 +814,9 @@ export default class Firebase {
                     .then(() => {
                       showSnackbar('Project unublished', 'success');
                       this.db.collection(Collection.NOTIFICATIONS).add({
-                        text: `Your project ${project.name} has been deleted by an admin ${
-                          reason ? reason : ''
-                        }`,
+                        text: `Your project ${
+                          project.name
+                        } has been deleted by an admin ${reason ? reason : ''}`,
                         status: 'pending',
                         type: UserNotifcationType.ADMIN_DELETE_PROJECT,
                         userId: project.userId,
@@ -763,7 +825,7 @@ export default class Firebase {
                       });
                     })
 
-                    .catch(err => showSnackbar(err, 'error'));
+                    .catch((err: any) => showSnackbar(err, 'error'));
                 }
               });
           }
@@ -776,7 +838,7 @@ export default class Firebase {
     if (user) {
       this.user(user.uid)
         .get()
-        .then(doc => {
+        .then((doc: any) => {
           const data = doc.data();
           if (data?.isAdmin) {
             this.db
@@ -784,12 +846,14 @@ export default class Firebase {
               .add({
                 userId: userToBan,
                 daysToBan,
-                reason: `You've been banned for ${daysToBan} days ${reason ? reason : ''}`,
+                reason: `You've been banned for ${daysToBan} days ${
+                  reason ? reason : ''
+                }`,
                 createdAt: new Date(),
               })
 
               .then(() => showSnackbar('User banned', 'success'))
-              .catch(err => showSnackbar(err.toString(), 'error'));
+              .catch((err: any) => showSnackbar(err.toString(), 'error'));
           }
         });
     }
@@ -809,7 +873,8 @@ export default class Firebase {
 
   doSignInWithFacebook = () => this.auth.signInWithPopup(this.facebookProvider);
 
-  doFetchSignInMethodsForEmail = (email: string) => this.auth.fetchSignInMethodsForEmail(email);
+  doFetchSignInMethodsForEmail = (email: string) =>
+    this.auth.fetchSignInMethodsForEmail(email);
 
   doSignOut = () => this.auth.signOut();
 
@@ -830,18 +895,18 @@ export default class Firebase {
       user
         .delete()
         .then(() => showSnackbar('Account deleted', 'success'))
-        .catch(err => showSnackbar(err, 'error'));
+        .catch((err: string) => showSnackbar(err, 'error'));
     }
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onAuthUserListener = (next: any, fallback: any) =>
-    this.auth.onAuthStateChanged(user => {
+    this.auth.onAuthStateChanged((user: any) => {
       this.hasCheckedAuth = true;
       if (user) {
         this.user(user.uid)
           .get()
-          .then(doc => {
+          .then((doc: any) => {
             const data = doc.data();
             this.setDefaultUserValues(data);
             user.emailVerified ? next(user) : fallback();

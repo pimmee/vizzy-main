@@ -37,6 +37,7 @@ declare module '@material-ui/core/styles/shape' {
 
 const theme = createMuiTheme({
   palette: {
+    type: 'dark',
     primary: {
       light: color.primaryLight,
       main: color.primaryMain,

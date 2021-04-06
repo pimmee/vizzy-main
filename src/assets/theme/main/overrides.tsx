@@ -4,6 +4,7 @@ import { ComponentsProps } from '@material-ui/core/styles/props';
 
 import {
   primaryMain as editorPrimaryMain,
+  infoLight as editorInfoLight,
   successContrastText,
   successMain,
 } from '../editor/editorColors';
@@ -19,6 +20,13 @@ export default function applyOverrides(theme: Theme): Theme {
       },
     } as ComponentsProps,*/
     overrides: {
+      MuiCssBaseline: {
+        '@global': {
+          a: {
+            color: editorInfoLight,
+          },
+        },
+      },
       MuiTab: {
         root: {
           fontWeight: 400,

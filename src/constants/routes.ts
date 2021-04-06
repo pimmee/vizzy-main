@@ -35,6 +35,7 @@ const ROUTES = {
   CHANGELOG: '/changelog',
   ROADMAP: '/roadmap',
   TUTORIALS: '/tutorials',
+  USER: '/user',
 };
 
 export default ROUTES;
